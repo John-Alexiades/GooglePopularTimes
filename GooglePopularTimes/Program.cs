@@ -153,6 +153,8 @@ namespace GooglePopularTimes
 
                 while(true)
                 {
+                    driver.Navigate().Refresh();
+
                     var timeOfDay = DateTime.Now.TimeOfDay;
                     var nextFullHour = TimeSpan.FromHours(Math.Ceiling(timeOfDay.TotalHours));
                     int delta = Convert.ToInt32((nextFullHour - timeOfDay).TotalMilliseconds);
