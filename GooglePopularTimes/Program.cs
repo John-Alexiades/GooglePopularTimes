@@ -8,6 +8,7 @@ using System.Data;
 using System.Text;
 using System.Linq;
 using System.IO;
+using System.Collections.Generic;
 
 namespace GooglePopularTimes
 {
@@ -15,8 +16,14 @@ namespace GooglePopularTimes
     {
         static void Main(string[] args)
         {
+            List<Tuple<string, string>> places = new List<Tuple<string, string>>()
+            {
+                new Tuple<string, string>("https://www.google.com/search?q=shoprite+edison+nj&rlz=1C1CHBF_enUS843US843&oq=shoprite+edison+nj&aqs=chrome..69i57.3164j0j9&sourceid=chrome&ie=UTF-8","ShopRite Edison NJ"),
+                new Tuple<string, string>("https://www.google.com/search?rlz=1C1CHBF_enUS843US843&ei=Scy9XrnCK9eDytMPkLu90Aw&q=wendys+edison+nj&oq=wendys+edison+nj&gs_lcp=CgZwc3ktYWIQAzIECAAQCjIECAAQCjIICAAQFhAKEB4yBggAEBYQHjIGCAAQFhAeMgYIABAWEB4yCAgAEBYQChAeMgYIABAWEB4yBggAEBYQHjIGCAAQFhAeOggIABCDARCRAjoFCAAQkQI6AggAOgUIABCDAToECAAQQzoHCAAQgwEQQzoHCAAQChCRAjoGCAAQChBDUP0WWMciYKAkaABwAHgAgAGlAYgBhxKSAQQwLjE2mAEAoAEBqgEHZ3dzLXdpeg&sclient=psy-ab&ved=0ahUKEwj5ir-zubTpAhXXgXIEHZBdD8oQ4dUDCAw&uact=5", "Wendy's Edison NJ")
+            };
+
+            PopularTimesLive(places);
             //PopularTimes("https://www.google.com/search?q=shoprite+edison+nj&rlz=1C1CHBF_enUS843US843&oq=shop&aqs=chrome.0.69i59j69i57j0l3j69i61l2j69i60.674j0j4&sourceid=chrome&ie=UTF-8");
-            PopularTimesLive("https://www.google.com/search?q=shoprite+edison+nj&rlz=1C1CHBF_enUS843US843&oq=shoprite+edison+nj&aqs=chrome..69i57.3164j0j9&sourceid=chrome&ie=UTF-8");
         }
 
 
@@ -28,7 +35,7 @@ namespace GooglePopularTimes
         public static void PopularTimes(string URL)
         {
             IWebDriver driver = new ChromeDriver();
-            driver.Navigate().GoToUrl(URL);
+            driver.Navigate().GoToUrl(URL);            
 
             string storeName = driver.FindElement(By.XPath("//*[@id=\"rhs\"]/div/div[1]/div/div[1]/div/div[1]/div[2]/div[2]/div[1]/div/div/div[1]/span")).Text;
             storeName = storeName.TrimEnd('.', ',', '[', ']', ' ');
@@ -104,106 +111,76 @@ namespace GooglePopularTimes
             }
         }
 
-
-        public static void PopularTimesLive(string URL)
+        /// <summary>
+        /// Collect the Popular Times live data for a list of businesses.
+        /// </summary>
+        /// <param name="locations">A tuple that contains the URL of the google page and the name of the business.</param>
+        public static void PopularTimesLive(List<Tuple<string,string>> locations)
         {
-            try
+            List<Business> businesses = new List<Business>();
+            foreach (var l in locations)
             {
-                IWebDriver driver = new ChromeDriver();
-                driver.Navigate().GoToUrl(URL);
+                businesses.Add(new Business(l.Item1,l.Item2));
+            }
 
-                string storeName = driver.FindElement(By.XPath("//*[@id=\"rhs\"]/div/div[1]/div/div[1]/div/div[1]/div[2]/div[2]/div[1]/div/div/div[1]/span")).Text;
-                storeName = storeName.TrimEnd('.', ',', '[', ']', ' ');
-                storeName = Regex.Replace(storeName, " ", "_");
+            IWebDriver driver = new ChromeDriver();
+            string liveHour = "";
+            string liveDay = "";
+            double height = 0;            
 
-                DataTable dt = new DataTable(storeName);
-                dt.Columns.Add("ExtractDate", typeof(DateTime));
-                dt.Columns.Add("Day", typeof(string));            
-                dt.Columns.Add("0", typeof(double));
-                dt.Columns.Add("1", typeof(double));
-                dt.Columns.Add("2", typeof(double));
-                dt.Columns.Add("3", typeof(double));
-                dt.Columns.Add("4", typeof(double));
-                dt.Columns.Add("5", typeof(double));
-                dt.Columns.Add("6", typeof(double));
-                dt.Columns.Add("7", typeof(double));
-                dt.Columns.Add("8", typeof(double));
-                dt.Columns.Add("9", typeof(double));
-                dt.Columns.Add("10", typeof(double));
-                dt.Columns.Add("11", typeof(double));
-                dt.Columns.Add("12", typeof(double));
-                dt.Columns.Add("13", typeof(double));
-                dt.Columns.Add("14", typeof(double));
-                dt.Columns.Add("15", typeof(double));
-                dt.Columns.Add("16", typeof(double));
-                dt.Columns.Add("17", typeof(double));
-                dt.Columns.Add("18", typeof(double));
-                dt.Columns.Add("19", typeof(double));
-                dt.Columns.Add("20", typeof(double));
-                dt.Columns.Add("21", typeof(double));
-                dt.Columns.Add("22", typeof(double));
-                dt.Columns.Add("23", typeof(double));
-                dt.Columns.Add("24", typeof(double));
-
-                DataRow row = dt.NewRow();
-
-                string liveHour = "";
-                string liveDay = "";
-                string currentDay = DateTime.Today.ToString("yyyy-MM-dd");
-
-                while(true)
+            while (true)
+            {                               
+                foreach(Business b in businesses)
                 {
-                    driver.Navigate().Refresh();
-
-                    var timeOfDay = DateTime.Now.TimeOfDay;
-                    var nextFullHour = TimeSpan.FromHours(Math.Ceiling(timeOfDay.TotalHours));
-                    int delta = Convert.ToInt32((nextFullHour - timeOfDay).TotalMilliseconds);
-
-                    liveHour = Convert.ToString(DateTime.Now.Hour);
-                    liveDay = DateTime.Now.DayOfWeek.ToString();
-
-                    // Check if it is the next day
-                    if (currentDay != DateTime.Today.ToString("yyyy-MM-dd"))
-                    {
-                        currentDay = DateTime.Today.ToString("yyyy-MM-dd");
-                        // It is a new day. Flush the data row
-                        row["ExtractDate"] = DateTime.Now;
-                        dt.Rows.Add(row);
-                        ExportToCSV(dt, storeName);
-                        row = dt.NewRow();
-                    }
-
-
-                    double height = 0;                    
                     try
                     {
+                        // Try to get the current popularity of a business.
+                        driver.Navigate().GoToUrl(b.URL);
+
+                        liveDay = driver.FindElements(By.CssSelector("div[class=\"ecodF vL1E9b\"]")).Where(x => x.GetAttribute("aria-hidden").ToString() == "true").First().GetAttribute("aria-label");
+                        liveDay = Regex.Match(liveDay, "(?<=Histogram showing popular times on ).*(?=s)").Value;
+
+                        if(b.currentDay != liveDay && b.currentDay != null)
+                        {
+                            // It is a new day. Flush the buffer.
+                            b.buffer["ExtractDate"] = DateTime.Now;
+                            b.popularTimes.Rows.Add(b.buffer);                            
+                            b.buffer = b.popularTimes.NewRow();
+                            b.currentDay = liveDay;
+                            b.ExportToCSV();
+                        }
+
+                        var hour = driver.FindElement(By.CssSelector("div[class=\"lubh-bar lubh-sel\"]"));
+                        liveHour = Regex.Match(hour.GetAttribute("aria-label"), "[0-9]{1,2} (PM|AM)(?=:)").Value;
+                        
                         var liveBar = driver.FindElement(By.ClassName("ZQ55mf"));
                         height = Convert.ToDouble(Regex.Match(liveBar.GetAttribute("style"), "(?<=height: )[0-9]+(\\.[0-9]+)?(?=px)").Value);
+                        
                     }
                     catch(Exception ex)
                     {
                         Console.WriteLine(DateTime.Now + "Could not find the live bar. Will check next hour");
-                        row[liveHour] = 0;
-                        row["Day"] = liveDay;
-                        System.Threading.Thread.Sleep(delta + 5000); // Wait until the next hour plus five minutes
-                        continue;
+                        b.buffer[liveHour] = 0;
+                        b.buffer["Day"] = liveDay;
+                        b.currentDay = liveDay;
                     }
-                                                        
-                    
-                    row[liveHour] = height;
-                    row["Day"] = liveDay;
-                    // Wait for the next hour to collect data
-                    System.Threading.Thread.Sleep(delta + 5000); // Wait until the next hour plus five minutes
-                }
-                
 
+                    b.buffer[liveHour] = height;
+                    b.buffer["Day"] = liveDay;
+                    b.currentDay = liveDay;
+                    Console.WriteLine($"[{DateTime.Now}] [{b.name}] Logged {height} for hour {liveHour} on {liveDay}");
+                }
+
+                // All of the live data for this hour has been logged. Wait until the next hour.
+                var timeOfDay = DateTime.Now.TimeOfDay;
+                var nextFullHour = TimeSpan.FromHours(Math.Ceiling(timeOfDay.TotalHours));
+                int delta = Convert.ToInt32((nextFullHour - timeOfDay).TotalMilliseconds);
+                System.Threading.Thread.Sleep(delta + 5000); // Wait until the next hour plus five minutes
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex}");
-                Console.WriteLine("Maybe this store does not have a Popular Times graph or live data?");
-                return;
-            }
+
+
+
+
         }
 
         public static void ExportToCSV(DataTable dt, string name)
